@@ -1,0 +1,22 @@
+  - kind: ethereum/contract
+    name: {id}
+    network: {chain}
+    source:
+      address: "{address}"
+      abi: Forwarder
+      startBlock: {startBlock}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Forwarder
+      abis:
+        - name: Forwarder
+          file: {root}/../out/Forwarder.sol/Forwarder.json
+      eventHandlers:
+        - event: ForwarderCreated(indexed address)
+          handler: handleForwarderCreated
+        - event: MetaTransactionExecuted(indexed address,indexed address)
+          handler: handleMetaTransactionExecuted
+      file: {file}
