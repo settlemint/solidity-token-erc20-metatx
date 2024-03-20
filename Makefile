@@ -56,7 +56,7 @@ cast:
 subgraph:
 	@echo "Deploying the subgraph..."
 	@rm -Rf subgraph/subgraph.config.json
-	@FORWARDER_ADDRESS=$$(grep "Deployed Forwarder to:" deployment.txt | awk '{print $$4}') GENERIC_TOKEN_META_ADDRESS=$$(grep "Deployed GenericTokenMeta to:" deployment.txt | awk '{print $$4}') yq e -p=json -o=json '.datasources[0].address = strenv(FORWARDER_ADDRESS) | .datasources[1].address = strenv(GENERIC_TOKEN_META_ADDRESS) | .chain = env(BTP_NODE_UNIQUE_NAME)' subgraph/subgraph.config.template.json > subgraph/subgraph.config.json
+	@FORWARDER_ADDRESS=$$(grep "Deployed Forwarder to:" deployment.txt | awk '{print $$4}') GENERIC_TOKEN_META_ADDRESS=$$(grep "Deployed GenericTokenMeta to:" deployment.txt | awk '{print $$4}') yq e -p=json -o=json '.datasources[0].address = strenv(GENERIC_TOKEN_META_ADDRESS) | .datasources[1].address = strenv(FORWARDER_ADDRESS) | .chain = env(BTP_NODE_UNIQUE_NAME)' subgraph/subgraph.config.template.json > subgraph/subgraph.config.json
 	@cd subgraph && npx graph-compiler --config subgraph.config.json --include node_modules/@openzeppelin/subgraphs/src/datasources ./datasources --export-schema --export-subgraph
 	@cd subgraph && yq e '.specVersion = "0.0.4"' -i generated/solidity-token-erc20-metatx.subgraph.yaml
 	@cd subgraph && yq e '.description = "Solidity Token ERC20 Meta Tx"' -i generated/solidity-token-erc20-metatx.subgraph.yaml
