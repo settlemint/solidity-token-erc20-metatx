@@ -56,23 +56,22 @@ cast:
 subgraph:
 	@echo "Deploying the subgraph..."
 	@rm -Rf subgraph/subgraph.config.json
-	@FORWARDER_ADDRESS=$$(grep "Deployed Forwarder to:" deployment-anvil.txt | awk '{print $$4}') GENERIC_TOKEN_META_ADDRESS=$$(grep "Deployed GenericTokenMeta to:" deployment-anvil.txt | awk '{print $$4}') yq e -p=json -o=json '.datasources[0].address = strenv(FORWARDER_ADDRESS) | .datasources[1].address = strenv(GENERIC_TOKEN_META_ADDRESS) | .chain = env(BTP_NETWORK_NAME)' subgraph/subgraph.config.template.json > subgraph/subgraph.config.json
-	@cd subgraph && pnpm graph-compiler --config subgraph.config.json --include node_modules/@openzeppelin/subgraphs/src/datasources ./datasources --export-schema --export-subgraph
+	@FORWARDER_ADDRESS=$$(grep "Deployed Forwarder to:" deployment.txt | awk '{print $$4}') GENERIC_TOKEN_META_ADDRESS=$$(grep "Deployed GenericTokenMeta to:" deployment.txt | awk '{print $$4}') yq e -p=json -o=json '.datasources[0].address = strenv(FORWARDER_ADDRESS) | .datasources[1].address = strenv(GENERIC_TOKEN_META_ADDRESS) | .chain = env(BTP_NODE_UNIQUE_NAME)' subgraph/subgraph.config.template.json > subgraph/subgraph.config.json
+	@cd subgraph && npx graph-compiler --config subgraph.config.json --include node_modules/@openzeppelin/subgraphs/src/datasources ./datasources --export-schema --export-subgraph
 	@cd subgraph && yq e '.specVersion = "0.0.4"' -i generated/solidity-token-erc20-metatx.subgraph.yaml
-	@cd subgraph && yq e '.description = "Solidity Token ERC20"' -i generated/solidity-token-erc20-metatx.subgraph.yaml
+	@cd subgraph && yq e '.description = "Solidity Token ERC20 Meta Tx"' -i generated/solidity-token-erc20-metatx.subgraph.yaml
 	@cd subgraph && yq e '.repository = "https://github.com/settlemint/solidity-token-erc20-metatx"' -i generated/solidity-token-erc20-metatx.subgraph.yaml
-	@cd subgraph && yq e '.indexerHints.prune = "auto"' -i generated/solidity-token-erc20-metatx.subgraph.yaml
 	@cd subgraph && yq e '.features = ["nonFatalErrors", "fullTextSearch", "ipfsOnEthereumContracts"]' -i generated/solidity-token-erc20-metatx.subgraph.yaml
-	@cd subgraph && pnpm graph codegen generated/solidity-token-erc20-metatx.subgraph.yaml
-	@cd subgraph && pnpm graph build generated/solidity-token-erc20-metatx.subgraph.yaml
+	@cd subgraph && npx graph codegen generated/solidity-token-erc20-metatx.subgraph.yaml
+	@cd subgraph && npx graph build generated/solidity-token-erc20-metatx.subgraph.yaml
 	@eval $$(curl -H "x-auth-token: $${BTP_SERVICE_TOKEN}" -s $${BTP_CLUSTER_MANAGER_URL}/ide/foundry/$${BTP_SCS_ID}/env | sed 's/^/export /'); \
 	if [ "$${BTP_MIDDLEWARE}" == "" ]; then \
 		echo "You have not launched a graph middleware for this smart contract set, aborting..."; \
 		exit 1; \
 	else \
 		cd subgraph; \
-		pnpm graph create --node $${BTP_MIDDLEWARE} $${BTP_SCS_NAME}; \
-		pnpm graph deploy --version-label v1.0.$$(date +%s) --node $${BTP_MIDDLEWARE} --ipfs $${BTP_IPFS}/api/v0 $${BTP_SCS_NAME} generated/solidity-token-erc20-metatx.subgraph.yaml; \
+		npx graph create --node $${BTP_MIDDLEWARE} $${BTP_SCS_NAME}; \
+		npx graph deploy --version-label v1.0.$$(date +%s) --node $${BTP_MIDDLEWARE} --ipfs $${BTP_IPFS}/api/v0 $${BTP_SCS_NAME} generated/solidity-token-erc20-metatx.subgraph.yaml; \
 	fi
 
 help:
