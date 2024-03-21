@@ -46,10 +46,6 @@ deploy-btp:
 	forge create ./src/Forwarder.sol:Forwarder $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} $$args | sed 's/Deployed to:/Deployed Forwarder to:/' | tee deployment.txt; \
 	forge create ./src/GenericTokenMeta.sol:GenericTokenMeta $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} $$args --constructor-args "GenericTokenMeta" "GTM" "$$(grep "Deployed Forwarder to:" deployment.txt | awk '{print $$4}')" | sed 's/Deployed to:/Deployed GenericTokenMeta to:/' | tee -a deployment.txt
 
-cast:
-	@echo "Interacting with EVM via Cast..."
-	@cast $(SUBCOMMAND)
-
 subgraph:
 	@echo "Deploying the subgraph..."
 	@rm -Rf subgraph/subgraph.config.json
