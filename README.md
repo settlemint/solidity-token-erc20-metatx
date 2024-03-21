@@ -1,6 +1,6 @@
-# ERC20
+# ERC20 Meta Tx
 
-A basic ERC20 token contract.
+A basic ERC20 Meta Tx contract.
 
 ## Get started
 
@@ -9,7 +9,7 @@ Launch this smart contract set in the SettleMint Blockchain Transformation platf
 If you want to use it separately, bootstrap a new project using
 
 ```shell
-forge init my-erc20-token --template settlemint/solidity-token-erc20
+forge init my-erc20-metatx --template settlemint/solidity-token-erc20-metatx
 ```
 
 ## DX: Foundry
@@ -70,11 +70,15 @@ Deploy to a local anvil node:
 $ make deploy-anvil
 ```
 
+When prompted to enter a private key, copy one of the private keys shown in the terminal when you start the anvil node.
+
 Deploy to the connected platform node:
 
 ```shell
 $ make deploy-btp
 ```
+
+If you have a private key activated on the connected node, it will be used automatically. Else, you will be prompted to enter a private key. You can copy-paste a private key from the platform.
 
 ### Cast
 
