@@ -27,27 +27,24 @@ deploy-anvil:
 	@forge create ./src/Forwarder.sol:Forwarder --rpc-url anvil --interactive | sed 's/Deployed to:/Deployed Forwarder to:/' | tee deployment-anvil.txt
 	@forge create ./src/GenericTokenMeta.sol:GenericTokenMeta --rpc-url anvil --interactive --constructor-args "GenericTokenMeta" "GTM" "$$(grep "Deployed Forwarder to:" deployment-anvil.txt | awk '{print $$4}')" | sed 's/Deployed to:/Deployed GenericTokenMeta to:/' | tee -a deployment-anvil.txt
 
-deploy:
+deploy-btp:
 	@eval $$(curl -H "x-auth-token: $${BTP_SERVICE_TOKEN}" -s $${BTP_CLUSTER_MANAGER_URL}/ide/foundry/$${BTP_SCS_ID}/env | sed 's/^/export /'); \
-	if [ -z "$${BTP_FROM}" ]; then \
+	args=""; \
+	if [ ! -z "$${BTP_FROM}" ]; then \
+		args="--unlocked --from $${BTP_FROM}"; \
+	else \
 		echo "\033[1;33mWARNING: No keys are activated on the node, falling back to interactive mode...\033[0m"; \
 		echo ""; \
-		if [ -z "$${BTP_GAS_PRICE}" ]; then \
-			forge create ./src/Forwarder.sol:Forwarder $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} --interactive | sed 's/Deployed to:/Deployed Forwarder to:/' | tee deployment.txt; \
-			forge create ./src/GenericTokenMeta.sol:GenericTokenMeta $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} --interactive --constructor-args "GenericTokenMeta" "GTM" "$$(grep "Deployed Forwarder to:" deployment.txt | awk '{print $$4}')" | sed 's/Deployed to:/Deployed GenericTokenMeta to:/' | tee -a deployment.txt; \
-		else \
-			forge create ./src/Forwarder.sol:Forwarder $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} --interactive --gas-price $${BTP_GAS_PRICE} | sed 's/Deployed to:/Deployed Forwarder to:/' | tee deployment.txt; \
-			forge create ./src/GenericTokenMeta.sol:GenericTokenMeta $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} --interactive --gas-price $${BTP_GAS_PRICE} --constructor-args "GenericTokenMeta" "GTM" "$$(grep "Deployed Forwarder to:" deployment.txt | awk '{print $$4}')" | sed 's/Deployed to:/Deployed GenericTokenMeta to:/' | tee -a deployment.txt; \
-		fi; \
-	else \
-		if [ -z "$${BTP_GAS_PRICE}" ]; then \
-			forge create ./src/Forwarder.sol:Forwarder $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} --unlocked --from $${BTP_FROM} | sed 's/Deployed to:/Deployed Forwarder to:/' | tee deployment.txt; \
-			forge create ./src/GenericTokenMeta.sol:GenericTokenMeta $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} --unlocked --from $${BTP_FROM} --constructor-args "GenericTokenMeta" "GTM" "$$(grep "Deployed Forwarder to:" deployment.txt | awk '{print $$4}')" | sed 's/Deployed to:/Deployed GenericTokenMeta to:/' | tee -a deployment.txt; \
-		else \
-			forge create ./src/Forwarder.sol:Forwarder $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} --unlocked --from $${BTP_FROM} --gas-price $${BTP_GAS_PRICE} | sed 's/Deployed to:/Deployed Forwarder to:/' | tee deployment.txt; \
-			forge create ./src/GenericTokenMeta.sol:GenericTokenMeta $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} --unlocked --from $${BTP_FROM} --gas-price $${BTP_GAS_PRICE} --constructor-args "GenericTokenMeta" "GTM" "$$(grep "Deployed Forwarder to:" deployment.txt | awk '{print $$4}')" | sed 's/Deployed to:/Deployed GenericTokenMeta to:/' | tee -a deployment.txt; \
-		fi; \
-	fi
+		args="--interactive"; \
+	fi; \
+	if [ ! -z "$${BTP_GAS_PRICE}" ]; then \
+		args="$$args --gas-price $${BTP_GAS_PRICE}"; \
+	fi; \
+	if [ "$${BTP_EIP_1559_ENABLED}" = "false" ]; then \
+		args="$$args --legacy"; \
+	fi; \
+	forge create ./src/Forwarder.sol:Forwarder $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} $$args | sed 's/Deployed to:/Deployed Forwarder to:/' | tee deployment.txt; \
+	forge create ./src/GenericTokenMeta.sol:GenericTokenMeta $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} $$args --constructor-args "GenericTokenMeta" "GTM" "$$(grep "Deployed Forwarder to:" deployment.txt | awk '{print $$4}')" | sed 's/Deployed to:/Deployed GenericTokenMeta to:/' | tee -a deployment.txt
 
 cast:
 	@echo "Interacting with EVM via Cast..."
