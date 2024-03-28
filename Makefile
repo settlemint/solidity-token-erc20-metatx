@@ -25,8 +25,8 @@ anvil:
 
 deploy-anvil:
 	@echo "Deploying with Forge to Anvil..."
-	@forge create ./src/Forwarder.sol:Forwarder --rpc-url anvil --interactive | sed 's/Deployed to:/Deployed Forwarder to:/' | tee deployment-anvil.txt
-	@forge create ./src/GenericTokenMeta.sol:GenericTokenMeta --rpc-url anvil --interactive --constructor-args "GenericTokenMeta" "GTM" "$$(grep "Deployed Forwarder to:" deployment-anvil.txt | awk '{print $$4}')" | sed 's/Deployed to:/Deployed GenericTokenMeta to:/' | tee -a deployment-anvil.txt
+	@forge create ./src/Forwarder.sol:Forwarder --rpc-url anvil --interactive | sed 's/Deployed to:/Deployed Forwarder to:/' | sed 's/Transaction hash:/Forwarder Transaction hash:/' | tee deployment-anvil.txt
+	@forge create ./src/GenericTokenMeta.sol:GenericTokenMeta --rpc-url anvil --interactive --constructor-args "GenericTokenMeta" "GTM" "$$(grep "Deployed Forwarder to:" deployment-anvil.txt | awk '{print $$4}')" | sed 's/Deployed to:/Deployed GenericTokenMeta to:/' | sed 's/Transaction hash:/GenericTokenMeta Transaction hash:/' | tee -a deployment-anvil.txt
 
 deploy-btp:
 	@eval $$(curl -H "x-auth-token: $${BTP_SERVICE_TOKEN}" -s $${BTP_CLUSTER_MANAGER_URL}/ide/foundry/$${BTP_SCS_ID}/env | sed 's/^/export /'); \
@@ -44,14 +44,14 @@ deploy-btp:
 	if [ "$${BTP_EIP_1559_ENABLED}" = "false" ]; then \
 		args="$$args --legacy"; \
 	fi; \
-	forge create ./src/Forwarder.sol:Forwarder $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} $$args | sed 's/Deployed to:/Deployed Forwarder to:/' | tee deployment.txt; \
+	forge create ./src/Forwarder.sol:Forwarder $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} $$args | sed 's/Deployed to:/Deployed Forwarder to:/' | sed 's/Transaction hash:/Forwarder Transaction hash:/' | tee deployment.txt; \
 	sleep 15; \
-	forge create ./src/GenericTokenMeta.sol:GenericTokenMeta $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} $$args --constructor-args "GenericTokenMeta" "GTM" "$$(grep "Deployed Forwarder to:" deployment.txt | awk '{print $$4}')" | sed 's/Deployed to:/Deployed GenericTokenMeta to:/' | tee -a deployment.txt
+	forge create ./src/GenericTokenMeta.sol:GenericTokenMeta $${EXTRA_ARGS} --rpc-url $${BTP_RPC_URL} $$args --constructor-args "GenericTokenMeta" "GTM" "$$(grep "Deployed Forwarder to:" deployment.txt | awk '{print $$4}')" | sed 's/Deployed to:/Deployed GenericTokenMeta to:/' | sed 's/Transaction hash:/GenericTokenMeta Transaction hash:/' | tee -a deployment.txt
 
 subgraph:
 	@echo "Deploying the subgraph..."
 	@rm -Rf subgraph/subgraph.config.json
-	@FORWARDER_ADDRESS=$$(grep "Deployed Forwarder to:" deployment.txt | awk '{print $$4}') GENERIC_TOKEN_META_ADDRESS=$$(grep "Deployed GenericTokenMeta to:" deployment.txt | awk '{print $$4}') yq e -p=json -o=json '.datasources[0].address = strenv(GENERIC_TOKEN_META_ADDRESS) | .datasources[1].address = strenv(FORWARDER_ADDRESS) | .chain = env(BTP_NODE_UNIQUE_NAME)' subgraph/subgraph.config.template.json > subgraph/subgraph.config.json
+	@FORWARDER_ADDRESS=$$(grep "Deployed Forwarder to:" deployment.txt | awk '{print $$4}') FORWARDER_TRANSACTION_HASH=$$(grep "Forwarder Transaction hash:" deployment.txt | awk '{print $$4}') FORWARDER_BLOCK_NUMBER=$$(cast receipt --rpc-url btp $${FORWARDER_TRANSACTION_HASH} | grep "blockNumber" | awk '{print $$2}' | sed '2d') GENERIC_TOKEN_META_ADDRESS=$$(grep "Deployed GenericTokenMeta to:" deployment.txt | awk '{print $$4}') GENERIC_TOKEN_META_TRANSACTION_HASH=$$(grep "GenericTokenMeta Transaction hash:" deployment.txt | awk '{print $$4}') GENERIC_TOKEN_META_BLOCK_NUMBER=$$(cast receipt --rpc-url btp $${GENERIC_TOKEN_META_TRANSACTION_HASH} | grep "blockNumber" | awk '{print $$2}' | sed '2d') yq e -p=json -o=json '.datasources[0].address = strenv(GENERIC_TOKEN_META_ADDRESS) | .datasources[0].startBlock = strenv(GENERIC_TOKEN_META_BLOCK_NUMBER) | .datasources[1].address = strenv(FORWARDER_ADDRESS) | .datasources[1].startBlock = strenv(FORWARDER_BLOCK_NUMBER) | .chain = env(BTP_NODE_UNIQUE_NAME)' subgraph/subgraph.config.template.json > subgraph/subgraph.config.json
 	@cd subgraph && npx graph-compiler --config subgraph.config.json --include node_modules/@openzeppelin/subgraphs/src/datasources ./datasources --export-schema --export-subgraph
 	@cd subgraph && yq e '.specVersion = "0.0.4"' -i generated/solidity-token-erc20-metatx.subgraph.yaml
 	@cd subgraph && yq e '.description = "Solidity Token ERC20 Meta Tx"' -i generated/solidity-token-erc20-metatx.subgraph.yaml
