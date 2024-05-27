@@ -93,7 +93,6 @@ btp-scs hardhat deploy local -m <DEPLOYMENT_MODULE>
 You can also deploy your contracts to the network running on the platform by executing the following command:
 
 ```shell
-<<<<<<< HEAD
 btp-scs hardhat deploy remote -m <DEPLOYMENT_MODULE>
 ```
 
