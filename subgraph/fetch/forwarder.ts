@@ -1,6 +1,6 @@
-import { Address } from "@graphprotocol/graph-ts";
-import { ForwarderContract } from "../generated/schema";
-import { fetchAccount } from "./account";
+import { Address } from '@graphprotocol/graph-ts';
+import { ForwarderContract } from '../../generated/schema';
+import { fetchAccount } from './account';
 
 export function fetchForwarder(address: Address): ForwarderContract {
   const account = fetchAccount(address);

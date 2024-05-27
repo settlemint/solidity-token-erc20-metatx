@@ -1,5 +1,5 @@
 {
-  "output": "generated/solidity-token-erc20-metatx.",
+  "output": "generated/scs.",
   "chain": "localhost",
   "datasources": [
     {

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import "../src/GenericTokenMeta.sol";
-import "../src/Forwarder.sol";
+import "../contracts/GenericTokenMeta.sol";
+import "../contracts/Forwarder.sol";
 
 contract GenericTokenMetaTest is Test {
     address owner;
@@ -16,7 +16,11 @@ contract GenericTokenMetaTest is Test {
         owner = address(this);
         recipient = address(0x123);
         forwarder = new Forwarder();
-        token = new GenericTokenMeta("GenericTokenMeta", "GTM", address(forwarder));
+        token = new GenericTokenMeta(
+            "GenericTokenMeta",
+            "GTM",
+            address(forwarder)
+        );
     }
 
     function testMint() public {

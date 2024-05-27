@@ -1,12 +1,15 @@
-import { events, transactions } from "@amxx/graphprotocol-utils";
-import { Bytes } from "@graphprotocol/graph-ts";
-import { fetchAccount } from "../fetch/account";
-import { fetchForwarder } from "../fetch/forwarder";
+import { events, transactions } from '@amxx/graphprotocol-utils';
+import { Bytes } from '@graphprotocol/graph-ts';
+import { fetchAccount } from '../fetch/account';
+import { fetchForwarder } from '../fetch/forwarder';
 import {
   ForwarderCreated as ForwarderCreatedEvent,
   MetaTransactionExecuted as MetaTransactionEvent,
-} from "../generated/forwarder/Forwarder";
-import { ForwarderCreated, MetaTransactionExecuted } from "../generated/schema";
+} from '../../generated/forwarder/Forwarder';
+import {
+  ForwarderCreated,
+  MetaTransactionExecuted,
+} from '../../generated/schema';
 
 export function handleForwarderCreated(event: ForwarderCreatedEvent): void {
   const contract = fetchForwarder(event.address);

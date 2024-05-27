@@ -13,7 +13,7 @@
         - Forwarder
       abis:
         - name: Forwarder
-          file: {root}/../out/Forwarder.sol/Forwarder.json
+          file: {root}/out/Forwarder.sol/Forwarder.json
       eventHandlers:
         - event: ForwarderCreated(indexed address)
           handler: handleForwarderCreated
