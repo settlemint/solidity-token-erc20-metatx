@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
-import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
 /**
  * @title GenericTokenMeta
@@ -26,10 +26,10 @@ import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 contract GenericTokenMeta is
     ERC20,
     ERC20Burnable,
-    ERC165,
     ERC2771Context,
     ERC20Pausable,
-    Ownable
+    Ownable,
+    ERC20Permit
 {
     constructor(
         string memory name_,
@@ -39,6 +39,7 @@ contract GenericTokenMeta is
         ERC20(name_, symbol_)
         ERC2771Context(trustedForwarder_)
         Ownable(msg.sender)
+        ERC20Permit(name_)
     {
         _mint(msg.sender, 1_000_000 * 10 ** decimals());
     }
@@ -148,16 +149,5 @@ contract GenericTokenMeta is
         returns (uint256)
     {
         return super._contextSuffixLength();
-    }
-
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(ERC165) returns (bool) {
-        return
-            interfaceId == type(IERC20).interfaceId ||
-            interfaceId == type(ERC20Burnable).interfaceId ||
-            interfaceId == type(ERC20Pausable).interfaceId ||
-            interfaceId == type(ERC2771Context).interfaceId ||
-            super.supportsInterface(interfaceId); // ERC165, AccessControl
     }
 }
