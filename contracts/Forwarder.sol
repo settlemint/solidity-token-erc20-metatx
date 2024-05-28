@@ -5,11 +5,12 @@ pragma solidity 0.8.26;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 /**
  * @dev Simple minimal forwarder to be used together with an ERC2771 compatible contract. See {ERC2771Context}.
  */
-contract Forwarder is EIP712 {
+contract Forwarder is EIP712, ERC165 {
     using ECDSA for bytes32;
 
     struct ForwardRequest {
@@ -83,5 +84,13 @@ contract Forwarder is EIP712 {
 
         emit MetaTransactionExecuted(req.from, req.to);
         return (success, returndata);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165) returns (bool) {
+        return
+            interfaceId == type(EIP712).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }
