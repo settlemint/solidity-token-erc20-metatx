@@ -83,5 +83,6 @@ contract ForwarderTest is Test {
         // Execute the forwarder request with the signature
         (bool success, ) = forwarder.execute(req, signature);
         assertTrue(success, "Meta transaction execution failed");
+        assertEq(token.balanceOf(signer), 10);
     }
 }
