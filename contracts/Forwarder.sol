@@ -40,10 +40,6 @@ contract Forwarder is EIP712, ERC165 {
         return _nonces[from];
     }
 
-    function getForwarderAddress() public view returns (address) {
-        return address(this);
-    }
-
     function verify(
         ForwardRequest calldata req,
         bytes calldata signature
