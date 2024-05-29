@@ -10,7 +10,9 @@ contract ForwarderTest is Test {
     GenericTokenMeta token;
     address owner;
     address signer;
+    address signer2;
     uint256 privateKey;
+    uint256 privateKey2;
 
     function setUp() public {
         forwarder = new Forwarder();
@@ -21,7 +23,9 @@ contract ForwarderTest is Test {
             address(forwarder)
         );
         privateKey = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+        privateKey2 = 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d;
         signer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+        signer2 = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
         token.mint(signer, 20);
     }
 
@@ -85,6 +89,17 @@ contract ForwarderTest is Test {
 
         bytes memory signature = abi.encodePacked(r, s, v);
         forwarder.verify(req, signature);
+
+        (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(privateKey2, digest);
+
+        // Adjust the `v` value if necessary
+        if (v1 == 0 || v1 == 1) {
+            v1 += 27;
+        }
+
+        bytes memory signature1 = abi.encodePacked(r1, s1, v1);
+        bool result = forwarder.verify(req, signature1);
+        assertEq(result, false);
     }
 
     function testExecuteInvalidSignature() public {
