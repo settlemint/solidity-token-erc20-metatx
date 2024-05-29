@@ -61,4 +61,11 @@ contract GenericTokenMetaTest is Test {
         vm.expectRevert("ERC20: burn amount exceeds balance");
         token.burn(burnAmount); // This should fail
     }
+
+    function testMsgData() public {
+        // Call the msgData function
+        bytes memory data = token.msgData();
+        // Check if the returned data matches the msg.data
+        assertEq(data.length, msg.data.length, "msgData length mismatch");
+    }
 }
