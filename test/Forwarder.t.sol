@@ -90,6 +90,7 @@ contract ForwarderTest is Test {
         bytes memory signature = abi.encodePacked(r, s, v);
         forwarder.verify(req, signature);
 
+        //signing with a different private key
         (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(privateKey2, digest);
 
         // Adjust the `v` value if necessary
@@ -99,6 +100,11 @@ contract ForwarderTest is Test {
 
         bytes memory signature1 = abi.encodePacked(r1, s1, v1);
         bool result = forwarder.verify(req, signature1);
+        assertEq(result, false);
+
+        //changing the request
+        req.nonce++;
+        result = forwarder.verify(req, signature);
         assertEq(result, false);
     }
 
@@ -220,5 +226,13 @@ contract ForwarderTest is Test {
         (bool success, ) = forwarder.execute(req, signature);
         assertTrue(success, "Meta transaction execution failed");
         assertEq(token.balanceOf(signer), 10);
+    }
+
+    function testSupportsInterface() public view {
+        bool result = forwarder.supportsInterface(type(IERC165).interfaceId);
+        assertTrue(
+            result,
+            "supportsInterface should return true for IERC165 interface"
+        );
     }
 }
