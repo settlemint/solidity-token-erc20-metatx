@@ -87,6 +87,65 @@ contract ForwarderTest is Test {
         forwarder.verify(req, signature);
     }
 
+    function testExecuteInvalidSignature() public {
+        bytes32 domainSeparator = keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                ),
+                keccak256(bytes("MinimalForwarder")), // Name
+                keccak256(bytes("0.0.1")), // Version
+                block.chainid,
+                address(forwarder)
+            )
+        );
+
+        bytes4 transferSelector = bytes4(
+            keccak256("transfer(address,uint256)")
+        );
+        bytes memory data = abi.encodeWithSelector(transferSelector, owner, 10);
+
+        uint256 nonce = forwarder.getNonce(signer);
+
+        Forwarder.ForwardRequest memory req = Forwarder.ForwardRequest({
+            from: signer,
+            to: address(token),
+            value: 0,
+            gas: 300_000,
+            nonce: nonce,
+            data: data
+        });
+
+        bytes32 structHash = keccak256(
+            abi.encode(
+                keccak256(
+                    "ForwardRequest(address from,address to,uint256 value,uint256 gas,uint256 nonce,bytes data)"
+                ),
+                req.from,
+                req.to,
+                req.value,
+                req.gas,
+                req.nonce,
+                keccak256(req.data)
+            )
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", domainSeparator, structHash)
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
+
+        // Adjust the `v` value if necessary
+        if (v == 0 || v == 1) {
+            v += 27;
+        }
+
+        v++;
+        bytes memory signature = abi.encodePacked(r, s, v);
+        vm.expectRevert();
+        forwarder.execute(req, signature);
+    }
+
     function testMetaTransactionExecution() public {
         bytes32 domainSeparator = keccak256(
             abi.encode(
