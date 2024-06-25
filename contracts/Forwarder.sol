@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // SettleMint.com
 
-pragma solidity 0.8.26;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
