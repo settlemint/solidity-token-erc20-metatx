@@ -15,12 +15,8 @@ contract GenericTokenMetaTest is Test {
     function setUp() public {
         owner = address(this);
         recipient = address(0x123);
-        forwarder = new Forwarder();
-        token = new GenericTokenMeta(
-            "GenericTokenMeta",
-            "GTM",
-            address(forwarder)
-        );
+        forwarder = new Forwarder("ERC2771");
+        token = new GenericTokenMeta("GenericTokenMeta", "GTM", address(forwarder));
     }
 
     function testMint() public {
@@ -62,7 +58,7 @@ contract GenericTokenMetaTest is Test {
         token.burn(burnAmount); // This should fail
     }
 
-    function testMsgData() public {
+    function testMsgData() public view {
         // Call the msgData function
         bytes memory data = token.msgData();
         // Check if the returned data matches the msg.data

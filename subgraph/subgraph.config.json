@@ -7,12 +7,6 @@
       "address": "0x0000000000000000000000000000000000000000",
       "startBlock": 0,
       "module": ["erc20", "pausable", "accesscontrol"]
-    },
-    {
-      "name": "Forwarder",
-      "address": "0x0000000000000000000000000000000000000000",
-      "startBlock": 0,
-      "module": ["forwarder"]
     }
   ]
 }

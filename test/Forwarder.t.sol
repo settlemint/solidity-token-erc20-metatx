@@ -1,238 +1,158 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.24;
 
-import "forge-std/Test.sol";
-import "../contracts/Forwarder.sol";
-import "../contracts/GenericTokenMeta.sol";
+import {Test} from "forge-std/Test.sol";
+import {Forwarder} from "../contracts/Forwarder.sol";
+import {ERC2771Forwarder} from "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
+import {CallReceiverMockTrustingForwarder, CallReceiverMock} from "../contracts/mocks/CallReceiverMock.sol";
 
-contract ForwarderTest is Test {
-    Forwarder forwarder;
-    GenericTokenMeta token;
-    address owner;
-    address signer;
-    address signer2;
-    uint256 privateKey;
-    uint256 privateKey2;
+struct ForwardRequest {
+    address from;
+    address to;
+    uint256 value;
+    uint256 gas;
+    uint256 nonce;
+    uint48 deadline;
+    bytes data;
+}
+
+contract ERC2771ForwarderMock is Forwarder {
+    constructor(string memory name) Forwarder(name) {}
+
+    function structHash(ForwardRequest calldata request) external view returns (bytes32) {
+        return _hashTypedDataV4(
+            keccak256(
+                abi.encode(
+                    _FORWARD_REQUEST_TYPEHASH,
+                    request.from,
+                    request.to,
+                    request.value,
+                    request.gas,
+                    request.nonce,
+                    request.deadline,
+                    keccak256(request.data)
+                )
+            )
+        );
+    }
+}
+
+contract ERC2771ForwarderTest is Test {
+    ERC2771ForwarderMock internal _erc2771Forwarder;
+    CallReceiverMockTrustingForwarder internal _receiver;
+
+    uint256 internal _signerPrivateKey;
+    uint256 internal _relayerPrivateKey;
+
+    address internal _signer;
+    address internal _relayer;
+
+    uint256 internal constant _MAX_ETHER = 10_000_000; // To avoid overflow
 
     function setUp() public {
-        forwarder = new Forwarder();
-        owner = address(this);
-        token = new GenericTokenMeta(
-            "GenericTokenMeta",
-            "GMT",
-            address(forwarder)
-        );
-        privateKey = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
-        privateKey2 = 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d;
-        signer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
-        signer2 = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
-        token.mint(signer, 20);
+        _erc2771Forwarder = new ERC2771ForwarderMock("ERC2771Forwarder");
+        _receiver = new CallReceiverMockTrustingForwarder(address(_erc2771Forwarder));
+
+        _signerPrivateKey = 0xA11CE;
+        _relayerPrivateKey = 0xB0B;
+
+        _signer = vm.addr(_signerPrivateKey);
+        _relayer = vm.addr(_relayerPrivateKey);
     }
 
-    function testNonce() public view {
-        uint256 nonce = forwarder.getNonce(signer);
-        assertEq(nonce, 0);
-    }
-
-    function testVerify() public view {
-        bytes32 domainSeparator = keccak256(
-            abi.encode(
-                keccak256(
-                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-                ),
-                keccak256(bytes("MinimalForwarder")), // Name
-                keccak256(bytes("0.0.1")), // Version
-                block.chainid,
-                address(forwarder)
-            )
-        );
-
-        bytes4 transferSelector = bytes4(
-            keccak256("transfer(address,uint256)")
-        );
-        bytes memory data = abi.encodeWithSelector(transferSelector, owner, 10);
-
-        uint256 nonce = forwarder.getNonce(signer);
-
-        Forwarder.ForwardRequest memory req = Forwarder.ForwardRequest({
-            from: signer,
-            to: address(token),
-            value: 0,
-            gas: 300_000,
+    function _forgeRequestData(uint256 value, uint256 nonce, uint48 deadline, bytes memory data)
+        private
+        view
+        returns (Forwarder.ForwardRequestData memory)
+    {
+        ForwardRequest memory request = ForwardRequest({
+            from: _signer,
+            to: address(_receiver),
+            value: value,
+            gas: 30000,
             nonce: nonce,
+            deadline: deadline,
             data: data
         });
 
-        bytes32 structHash = keccak256(
-            abi.encode(
-                keccak256(
-                    "ForwardRequest(address from,address to,uint256 value,uint256 gas,uint256 nonce,bytes data)"
-                ),
-                req.from,
-                req.to,
-                req.value,
-                req.gas,
-                req.nonce,
-                keccak256(req.data)
-            )
-        );
-        bytes32 digest = keccak256(
-            abi.encodePacked("\x19\x01", domainSeparator, structHash)
-        );
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
-
-        // Adjust the `v` value if necessary
-        if (v == 0 || v == 1) {
-            v += 27;
-        }
-
+        bytes32 digest = _erc2771Forwarder.structHash(request);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(_signerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
-        forwarder.verify(req, signature);
 
-        //signing with a different private key
-        (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(privateKey2, digest);
-
-        // Adjust the `v` value if necessary
-        if (v1 == 0 || v1 == 1) {
-            v1 += 27;
-        }
-
-        bytes memory signature1 = abi.encodePacked(r1, s1, v1);
-        bool result = forwarder.verify(req, signature1);
-        assertEq(result, false);
-
-        //changing the request
-        req.nonce++;
-        result = forwarder.verify(req, signature);
-        assertEq(result, false);
+        return ERC2771Forwarder.ForwardRequestData({
+            from: request.from,
+            to: request.to,
+            value: request.value,
+            gas: request.gas,
+            deadline: request.deadline,
+            data: request.data,
+            signature: signature
+        });
     }
 
-    function testExecuteInvalidSignature() public {
-        bytes32 domainSeparator = keccak256(
-            abi.encode(
-                keccak256(
-                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-                ),
-                keccak256(bytes("MinimalForwarder")), // Name
-                keccak256(bytes("0.0.1")), // Version
-                block.chainid,
-                address(forwarder)
-            )
-        );
+    function testExecuteAvoidsETHStuck(uint256 initialBalance, uint256 value, bool targetReverts) public {
+        initialBalance = bound(initialBalance, 0, _MAX_ETHER);
+        value = bound(value, 0, _MAX_ETHER);
 
-        bytes4 transferSelector = bytes4(
-            keccak256("transfer(address,uint256)")
-        );
-        bytes memory data = abi.encodeWithSelector(transferSelector, owner, 10);
+        vm.deal(address(_erc2771Forwarder), initialBalance);
 
-        uint256 nonce = forwarder.getNonce(signer);
+        uint256 nonce = _erc2771Forwarder.nonces(_signer);
 
-        Forwarder.ForwardRequest memory req = Forwarder.ForwardRequest({
-            from: signer,
-            to: address(token),
-            value: 0,
-            gas: 300_000,
+        vm.deal(address(this), value);
+
+        Forwarder.ForwardRequestData memory requestData = _forgeRequestData({
+            value: value,
             nonce: nonce,
-            data: data
+            deadline: uint48(block.timestamp + 1),
+            data: targetReverts
+                ? abi.encodeCall(CallReceiverMock.mockFunctionRevertsNoReason, ())
+                : abi.encodeCall(CallReceiverMock.mockFunction, ())
         });
 
-        bytes32 structHash = keccak256(
-            abi.encode(
-                keccak256(
-                    "ForwardRequest(address from,address to,uint256 value,uint256 gas,uint256 nonce,bytes data)"
-                ),
-                req.from,
-                req.to,
-                req.value,
-                req.gas,
-                req.nonce,
-                keccak256(req.data)
-            )
-        );
-        bytes32 digest = keccak256(
-            abi.encodePacked("\x19\x01", domainSeparator, structHash)
-        );
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
-
-        // Adjust the `v` value if necessary
-        if (v == 0 || v == 1) {
-            v += 27;
+        if (targetReverts) {
+            vm.expectRevert();
         }
 
-        v++;
-        bytes memory signature = abi.encodePacked(r, s, v);
-        vm.expectRevert();
-        forwarder.execute(req, signature);
+        _erc2771Forwarder.execute{value: value}(requestData);
+        assertEq(address(_erc2771Forwarder).balance, initialBalance);
     }
 
-    function testMetaTransactionExecution() public {
-        bytes32 domainSeparator = keccak256(
-            abi.encode(
-                keccak256(
-                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-                ),
-                keccak256(bytes("MinimalForwarder")), // Name
-                keccak256(bytes("0.0.1")), // Version
-                block.chainid,
-                address(forwarder)
-            )
-        );
+    function testExecuteBatchAvoidsETHStuck(uint256 initialBalance, uint256 batchSize, uint256 value) public {
+        batchSize = bound(batchSize, 1, 10);
+        initialBalance = bound(initialBalance, 0, _MAX_ETHER);
+        value = bound(value, 0, _MAX_ETHER);
 
-        bytes4 transferSelector = bytes4(
-            keccak256("transfer(address,uint256)")
-        );
-        bytes memory data = abi.encodeWithSelector(transferSelector, owner, 10);
+        vm.deal(address(_erc2771Forwarder), initialBalance);
+        uint256 nonce = _erc2771Forwarder.nonces(_signer);
 
-        uint256 nonce = forwarder.getNonce(signer);
+        Forwarder.ForwardRequestData[] memory batchRequestDatas =
+            new Forwarder.ForwardRequestData[](batchSize);
 
-        Forwarder.ForwardRequest memory req = Forwarder.ForwardRequest({
-            from: signer,
-            to: address(token),
-            value: 0,
-            gas: 300_000,
-            nonce: nonce,
-            data: data
-        });
+        uint256 expectedRefund;
 
-        bytes32 structHash = keccak256(
-            abi.encode(
-                keccak256(
-                    "ForwardRequest(address from,address to,uint256 value,uint256 gas,uint256 nonce,bytes data)"
-                ),
-                req.from,
-                req.to,
-                req.value,
-                req.gas,
-                req.nonce,
-                keccak256(req.data)
-            )
-        );
-        bytes32 digest = keccak256(
-            abi.encodePacked("\x19\x01", domainSeparator, structHash)
-        );
+        for (uint256 i = 0; i < batchSize; ++i) {
+            bytes memory data;
+            bool succeed = uint256(keccak256(abi.encodePacked(initialBalance, i))) % 2 == 0;
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
+            if (succeed) {
+                data = abi.encodeCall(CallReceiverMock.mockFunction, ());
+            } else {
+                expectedRefund += value;
+                data = abi.encodeCall(CallReceiverMock.mockFunctionRevertsNoReason, ());
+            }
 
-        // Adjust the `v` value if necessary
-        if (v == 0 || v == 1) {
-            v += 27;
+            batchRequestDatas[i] =
+                _forgeRequestData({value: value, nonce: nonce + i, deadline: uint48(block.timestamp + 1), data: data});
         }
 
-        bytes memory signature = abi.encodePacked(r, s, v);
+        address payable refundReceiver = payable(address(0xebe));
+        uint256 totalValue = value * batchSize;
 
-        // Execute the forwarder request with the signature
-        (bool success, ) = forwarder.execute(req, signature);
-        assertTrue(success, "Meta transaction execution failed");
-        assertEq(token.balanceOf(signer), 10);
-    }
+        vm.deal(address(this), totalValue);
+        _erc2771Forwarder.executeBatch{value: totalValue}(batchRequestDatas, refundReceiver);
 
-    function testSupportsInterface() public view {
-        bool result = forwarder.supportsInterface(type(IERC165).interfaceId);
-        assertTrue(
-            result,
-            "supportsInterface should return true for IERC165 interface"
-        );
+        assertEq(address(_erc2771Forwarder).balance, initialBalance);
+        assertEq(refundReceiver.balance, expectedRefund);
     }
 }
