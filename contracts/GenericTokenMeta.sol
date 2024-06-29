@@ -23,14 +23,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
  *  For demonstrative purposes, 1 million GTM tokens are pre-mined to the address
  *  deploying this contract.
  */
-contract GenericTokenMeta is
-    ERC20,
-    ERC20Burnable,
-    ERC2771Context,
-    ERC20Pausable,
-    Ownable,
-    ERC20Permit
-{
+contract GenericTokenMeta is ERC20, ERC20Burnable, ERC2771Context, ERC20Pausable, Ownable, ERC20Permit {
     constructor(
         string memory name_,
         string memory symbol_,
@@ -102,21 +95,11 @@ contract GenericTokenMeta is
         _burn(_msgSender(), amount);
     }
 
-    function _msgSender()
-        internal
-        view
-        override(Context, ERC2771Context)
-        returns (address sender)
-    {
+    function _msgSender() internal view override(Context, ERC2771Context) returns (address sender) {
         sender = ERC2771Context._msgSender();
     }
 
-    function _msgData()
-        internal
-        view
-        override(Context, ERC2771Context)
-        returns (bytes calldata)
-    {
+    function _msgData() internal view override(Context, ERC2771Context) returns (bytes calldata) {
         return ERC2771Context._msgData();
     }
 
@@ -134,20 +117,11 @@ contract GenericTokenMeta is
      * - when `to` is zero, `amount` of `from`'s tokens will be burned.
      * - `from` and `to` are never both zero.
      */
-    function _update(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override(ERC20, ERC20Pausable) {
+    function _update(address from, address to, uint256 amount) internal override(ERC20, ERC20Pausable) {
         super._update(from, to, amount);
     }
 
-    function _contextSuffixLength()
-        internal
-        view
-        override(Context, ERC2771Context)
-        returns (uint256)
-    {
+    function _contextSuffixLength() internal view override(Context, ERC2771Context) returns (uint256) {
         return super._contextSuffixLength();
     }
 }

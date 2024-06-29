@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.24;
 
-import {Test} from "forge-std/Test.sol";
-import {Forwarder} from "../contracts/Forwarder.sol";
-import {ERC2771Forwarder} from "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
-import {CallReceiverMockTrustingForwarder, CallReceiverMock} from "../contracts/mocks/CallReceiverMock.sol";
+import { Test } from "forge-std/Test.sol";
+import { Forwarder } from "../contracts/Forwarder.sol";
+import { ERC2771Forwarder } from "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
+import { CallReceiverMockTrustingForwarder, CallReceiverMock } from "../contracts/mocks/CallReceiverMock.sol";
 
 struct ForwardRequest {
     address from;
@@ -18,7 +18,7 @@ struct ForwardRequest {
 }
 
 contract ERC2771ForwarderMock is Forwarder {
-    constructor(string memory name) Forwarder(name) {}
+    constructor(string memory name) Forwarder(name) { }
 
     function structHash(ForwardRequest calldata request) external view returns (bytes32) {
         return _hashTypedDataV4(
@@ -61,7 +61,12 @@ contract ERC2771ForwarderTest is Test {
         _relayer = vm.addr(_relayerPrivateKey);
     }
 
-    function _forgeRequestData(uint256 value, uint256 nonce, uint48 deadline, bytes memory data)
+    function _forgeRequestData(
+        uint256 value,
+        uint256 nonce,
+        uint48 deadline,
+        bytes memory data
+    )
         private
         view
         returns (Forwarder.ForwardRequestData memory)
@@ -70,7 +75,7 @@ contract ERC2771ForwarderTest is Test {
             from: _signer,
             to: address(_receiver),
             value: value,
-            gas: 30000,
+            gas: 30_000,
             nonce: nonce,
             deadline: deadline,
             data: data
@@ -114,7 +119,7 @@ contract ERC2771ForwarderTest is Test {
             vm.expectRevert();
         }
 
-        _erc2771Forwarder.execute{value: value}(requestData);
+        _erc2771Forwarder.execute{ value: value }(requestData);
         assertEq(address(_erc2771Forwarder).balance, initialBalance);
     }
 
@@ -126,8 +131,7 @@ contract ERC2771ForwarderTest is Test {
         vm.deal(address(_erc2771Forwarder), initialBalance);
         uint256 nonce = _erc2771Forwarder.nonces(_signer);
 
-        Forwarder.ForwardRequestData[] memory batchRequestDatas =
-            new Forwarder.ForwardRequestData[](batchSize);
+        Forwarder.ForwardRequestData[] memory batchRequestDatas = new Forwarder.ForwardRequestData[](batchSize);
 
         uint256 expectedRefund;
 
@@ -143,14 +147,14 @@ contract ERC2771ForwarderTest is Test {
             }
 
             batchRequestDatas[i] =
-                _forgeRequestData({value: value, nonce: nonce + i, deadline: uint48(block.timestamp + 1), data: data});
+                _forgeRequestData({ value: value, nonce: nonce + i, deadline: uint48(block.timestamp + 1), data: data });
         }
 
         address payable refundReceiver = payable(address(0xebe));
         uint256 totalValue = value * batchSize;
 
         vm.deal(address(this), totalValue);
-        _erc2771Forwarder.executeBatch{value: totalValue}(batchRequestDatas, refundReceiver);
+        _erc2771Forwarder.executeBatch{ value: totalValue }(batchRequestDatas, refundReceiver);
 
         assertEq(address(_erc2771Forwarder).balance, initialBalance);
         assertEq(refundReceiver.balance, expectedRefund);

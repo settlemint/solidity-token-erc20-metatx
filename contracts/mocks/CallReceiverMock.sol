@@ -10,7 +10,7 @@ contract CallReceiverMock is Ownable {
 
     uint256[] private _array;
 
-    constructor() payable Ownable(msg.sender){}
+    constructor() payable Ownable(msg.sender) { }
 
     function mockFunction() public payable returns (string memory) {
         emit MockFunctionCalled();
@@ -48,7 +48,7 @@ contract CallReceiverMock is Ownable {
     }
 
     function mockFunctionOutOfGas() public payable {
-        for (uint256 i = 0; ; ++i) {
+        for (uint256 i = 0;; ++i) {
             _array.push(i);
         }
     }
