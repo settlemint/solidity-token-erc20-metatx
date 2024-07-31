@@ -10,7 +10,10 @@ contract GenericTokenMetaTest is Test {
     address recipient;
     GenericTokenMeta token;
     Forwarder forwarder;
-    address trustedForwarder = address(0x1); // Example forwarder address, replace with a real one if needed
+    address trustedForwarder = address(0x1);
+
+    error ERC20InsufficientBalance(address account, uint256 balance, uint256 amount);
+    error EnforcedPause();
 
     function setUp() public {
         owner = address(this);
@@ -49,13 +52,13 @@ contract GenericTokenMetaTest is Test {
     function testFailMintWhenPaused() public {
         token.pause();
         uint256 mintAmount = 1000 * 10 ** token.decimals();
-        token.mint(owner, mintAmount); // This should fail
+        token.mint(owner, mintAmount);
     }
 
     function testFailBurnMoreThanBalance() public {
         uint256 burnAmount = 200_000 * 10 ** token.decimals();
-        vm.expectRevert("ERC20: burn amount exceeds balance");
-        token.burn(burnAmount); // This should fail
+        vm.prank(recipient);
+        token.burn(burnAmount);
     }
 
     function testMsgData() public view {

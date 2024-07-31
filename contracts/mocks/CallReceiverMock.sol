@@ -46,23 +46,6 @@ contract CallReceiverMock is Ownable {
     function mockFunctionThrows() public payable {
         assert(false);
     }
-
-    function mockFunctionOutOfGas() public payable {
-        for (uint256 i = 0;; ++i) {
-            _array.push(i);
-        }
-    }
-
-    function mockFunctionWritesStorage(bytes32 slot, bytes32 value) public returns (string memory) {
-        assembly {
-            sstore(slot, value)
-        }
-        return "0x1234";
-    }
-
-    function withdraw() external onlyOwner {
-        payable(owner()).transfer(address(this).balance);
-    }
 }
 
 contract CallReceiverMockTrustingForwarder is CallReceiverMock {
