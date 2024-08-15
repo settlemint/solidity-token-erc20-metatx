@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: FSL-1.1-MIT
 // OpenZeppelin Contracts (last updated v5.0.0) (metatx/ERC2771Forwarder.sol)
 
 pragma solidity 0.8.24;
