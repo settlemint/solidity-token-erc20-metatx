@@ -21,7 +21,7 @@ forge init my-project --template settlemint/solidity-token-erc20-metatx
 Or if you want to use this set as a dependency of your own,
 
 ```shell
-npm install @settlemint/solidity-token-erc20-metatx
+bun install @settlemint/solidity-token-erc20-metatx
 ```
 
 ## DX: Foundry & Hardhat hybrid
