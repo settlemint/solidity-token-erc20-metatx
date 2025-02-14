@@ -49,15 +49,17 @@ contract GenericTokenMetaTest is Test {
         assertFalse(token.paused());
     }
 
-    function testFailMintWhenPaused() public {
+    function testMintWhenPaused() public {
         token.pause();
         uint256 mintAmount = 1000 * 10 ** token.decimals();
+        vm.expectRevert(EnforcedPause.selector);
         token.mint(owner, mintAmount);
     }
 
-    function testFailBurnMoreThanBalance() public {
+    function testBurnMoreThanBalance() public {
         uint256 burnAmount = 200_000 * 10 ** token.decimals();
         vm.prank(recipient);
+        vm.expectRevert(abi.encodeWithSelector(ERC20InsufficientBalance.selector, recipient, 0, burnAmount));
         token.burn(burnAmount);
     }
 
